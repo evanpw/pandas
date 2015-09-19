@@ -227,6 +227,13 @@ Also, 'delimiter' is used to specify the filler character of the
 fields if it is not spaces (e.g., '~').
 """ % (_parser_params % _fwf_widths)
 
+def force_integer(x):
+    """Losslessly convert x to an integer, raising an exception if impossible."""
+    new_x = int(x)
+    if x != new_x:
+        raise ValueError("{} cannot be converted to an integer".format(x))
+
+    return new_x
 
 def _read(filepath_or_buffer, kwds):
     "Generic reader of line files."
@@ -263,6 +270,13 @@ def _read(filepath_or_buffer, kwds):
     iterator = kwds.get('iterator', False)
     nrows = kwds.pop('nrows', None)
     chunksize = kwds.get('chunksize', None)
+
+    # Allow chunksize to be something like 1e6 to be compatible with c engine
+    if com.is_float(chunksize):
+        if chunksize.is_integer():
+            chunksize = kwds['chunksize'] = int(chunksize)
+        else:
+            raise ValueError('"chunksize" must be an integer')
 
     # Create the parser.
     parser = TextFileReader(filepath_or_buffer, **kwds)

@@ -2509,6 +2509,14 @@ MyColumn
         data = 'a,b,c\n4,5,6\n"'
         self.assertRaises(Exception, self.read_csv, StringIO(data), escapechar='\\')
 
+    def test_chunksize_float(self):
+        # GH 10476
+        data = '1,2,3\n4,5,6\n'
+        reader = self.read_csv(StringIO(data), chunksize=1e3, header=None)
+
+        result = next(iter(reader))
+        expected = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+        tm.assert_frame_equal(result, expected)
 
 
 class TestPythonParser(ParserTests, tm.TestCase):
