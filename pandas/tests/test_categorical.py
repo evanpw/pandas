@@ -691,7 +691,7 @@ class TestCategorical(tm.TestCase):
     def test_print_none_width(self):
         # GH10087
         a = pd.Series(pd.Categorical([1, 2, 3, 4]))
-        exp = u("0    1\n1    2\n2    3\n3    4\n" +
+        exp = u("0   1\n1   2\n2   3\n3   4\n" +
                 "dtype: category\nCategories (4, int64): [1, 2, 3, 4]")
 
         with option_context("display.width", None):
@@ -2163,7 +2163,7 @@ class TestCategoricalAsBlock(tm.TestCase):
 
     def test_repr(self):
         a = pd.Series(pd.Categorical([1, 2, 3, 4]))
-        exp = u("0    1\n1    2\n2    3\n3    4\n" +
+        exp = u("0   1\n1   2\n2   3\n3   4\n" +
                 "dtype: category\nCategories (4, int64): [1, 2, 3, 4]")
 
         self.assertEqual(exp, a.__unicode__())
@@ -2177,7 +2177,7 @@ class TestCategoricalAsBlock(tm.TestCase):
         levs = list("abcdefghijklmnopqrstuvwxyz")
         a = pd.Series(pd.Categorical(
             ["a", "b"], categories=levs, ordered=True))
-        exp = u("0    a\n1    b\n" + "dtype: category\n"
+        exp = u("0   a\n1   b\n" + "dtype: category\n"
                 "Categories (26, object): [a < b < c < d ... w < x < y < z]")
         self.assertEqual(exp, a.__unicode__())
 
@@ -2456,25 +2456,25 @@ Categories (20, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
     def test_categorical_series_repr(self):
         s = pd.Series(pd.Categorical([1, 2, 3]))
-        exp = """0    1
-1    2
-2    3
+        exp = """0   1
+1   2
+2   3
 dtype: category
 Categories (3, int64): [1, 2, 3]"""
 
         self.assertEqual(repr(s), exp)
 
         s = pd.Series(pd.Categorical(np.arange(10)))
-        exp = """0    0
-1    1
-2    2
-3    3
-4    4
-5    5
-6    6
-7    7
-8    8
-9    9
+        exp = """0   0
+1   1
+2   2
+3   3
+4   4
+5   5
+6   6
+7   7
+8   8
+9   9
 dtype: category
 Categories (10, int64): [0, 1, 2, 3, ..., 6, 7, 8, 9]"""
 
@@ -2482,25 +2482,25 @@ Categories (10, int64): [0, 1, 2, 3, ..., 6, 7, 8, 9]"""
 
     def test_categorical_series_repr_ordered(self):
         s = pd.Series(pd.Categorical([1, 2, 3], ordered=True))
-        exp = """0    1
-1    2
-2    3
+        exp = """0   1
+1   2
+2   3
 dtype: category
 Categories (3, int64): [1 < 2 < 3]"""
 
         self.assertEqual(repr(s), exp)
 
         s = pd.Series(pd.Categorical(np.arange(10), ordered=True))
-        exp = """0    0
-1    1
-2    2
-3    3
-4    4
-5    5
-6    6
-7    7
-8    8
-9    9
+        exp = """0   0
+1   1
+2   2
+3   3
+4   4
+5   5
+6   6
+7   7
+8   8
+9   9
 dtype: category
 Categories (10, int64): [0 < 1 < 2 < 3 ... 6 < 7 < 8 < 9]"""
 

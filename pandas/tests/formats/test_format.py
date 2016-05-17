@@ -190,7 +190,7 @@ class TestDataFrameFormatting(tm.TestCase):
             adj = fmt._get_adjustment()
 
             for line, value in lzip(r.split('\n'), df['B']):
-                if adj.len(value) + 1 > max_len:
+                if adj.len(value) > max_len:
                     self.assertIn('...', line)
                 else:
                     self.assertNotIn('...', line)
@@ -204,16 +204,16 @@ class TestDataFrameFormatting(tm.TestCase):
     def test_repr_chop_threshold(self):
         df = DataFrame([[0.1, 0.5], [0.5, -0.1]])
         pd.reset_option("display.chop_threshold")  # default None
-        self.assertEqual(repr(df), '     0    1\n0  0.1  0.5\n1  0.5 -0.1')
+        self.assertEqual(repr(df), '    0    1\n0 0.1  0.5\n1 0.5 -0.1')
 
         with option_context("display.chop_threshold", 0.2):
-            self.assertEqual(repr(df), '     0    1\n0  0.0  0.5\n1  0.5  0.0')
+            self.assertEqual(repr(df), '    0   1\n0 0.0 0.5\n1 0.5 0.0')
 
         with option_context("display.chop_threshold", 0.6):
-            self.assertEqual(repr(df), '     0    1\n0  0.0  0.0\n1  0.0  0.0')
+            self.assertEqual(repr(df), '    0   1\n0 0.0 0.0\n1 0.0 0.0')
 
         with option_context("display.chop_threshold", None):
-            self.assertEqual(repr(df), '     0    1\n0  0.1  0.5\n1  0.5 -0.1')
+            self.assertEqual(repr(df), '    0    1\n0 0.1  0.5\n1 0.5 -0.1')
 
     def test_repr_obeys_max_seq_limit(self):
         with option_context("display.max_seq_items", 2000):
@@ -322,9 +322,9 @@ class TestDataFrameFormatting(tm.TestCase):
             # width=None in terminal, auto detection
             with option_context('display.max_columns', 100, 'display.max_rows',
                                 term_width * 20, 'display.width', None):
-                df = mkframe((term_width // 7) - 2)
+                df = mkframe((term_width // 6) - 2)
                 self.assertFalse(has_expanded_repr(df))
-                df = mkframe((term_width // 7) + 2)
+                df = mkframe((term_width // 6) + 2)
                 printing.pprint_thing(df._repr_fits_horizontal_())
                 self.assertTrue(has_expanded_repr(df))
 
@@ -340,13 +340,13 @@ class TestDataFrameFormatting(tm.TestCase):
         df.set_index(['a', 'b', 'c'])
         self.assertTrue(
             str(df) ==
-            '     a    b                                           c  d\n'
-            '0  foo  bar  uncomfortably long line with lots of stuff  1\n'
-            '1  foo  bar                                       stuff  1')
+            '    a   b                                          c d\n'
+            '0 foo bar uncomfortably long line with lots of stuff 1\n'
+            '1 foo bar                                      stuff 1')
         with option_context('max_colwidth', 20):
-            self.assertTrue(str(df) == '     a    b                    c  d\n'
-                            '0  foo  bar  uncomfortably lo...  1\n'
-                            '1  foo  bar                stuff  1')
+            self.assertTrue(str(df) == '    a   b                    c d\n'
+                            '0 foo bar uncomfortably lon... 1\n'
+                            '1 foo bar                stuff 1')
 
     def test_auto_detect(self):
         term_width, term_height = get_terminal_size()
@@ -450,10 +450,10 @@ class TestDataFrameFormatting(tm.TestCase):
                       ('object', lambda x: '-%s-' % str(x))]
         result = df.to_string(formatters=dict(formatters))
         result2 = df.to_string(formatters=lzip(*formatters)[1])
-        self.assertEqual(result, ('  int  float    object\n'
-                                  '0 0x1 [ 1.0]  -(1, 2)-\n'
-                                  '1 0x2 [ 2.0]    -True-\n'
-                                  '2 0x3 [ 3.0]   -False-'))
+        self.assertEqual(result, ('  int  float   object\n'
+                                  '0 0x1 [ 1.0] -(1, 2)-\n'
+                                  '1 0x2 [ 2.0]   -True-\n'
+                                  '2 0x3 [ 3.0]  -False-'))
         self.assertEqual(result, result2)
 
     def test_to_string_with_datetime64_monthformatter(self):
@@ -495,53 +495,53 @@ class TestDataFrameFormatting(tm.TestCase):
         df = DataFrame({'a': [u'あ', u'いいい', u'う', u'ええええええ'],
                         'b': [1, 222, 33333, 4]},
                        index=['a', 'bb', 'c', 'ddd'])
-        expected = (u"          a      b\na         あ      1\n"
-                    u"bb      いいい    222\nc         う  33333\n"
-                    u"ddd  ええええええ      4")
+        expected = (u"         a     b\na        あ     1\n"
+                    u"bb     いいい   222\nc        う 33333\n"
+                    u"ddd ええええええ     4")
         self.assertEqual(_rep(df), expected)
 
         # last col
         df = DataFrame({'a': [1, 222, 33333, 4],
                         'b': [u'あ', u'いいい', u'う', u'ええええええ']},
                        index=['a', 'bb', 'c', 'ddd'])
-        expected = (u"         a       b\na        1       あ\n"
-                    u"bb     222     いいい\nc    33333       う\n"
-                    u"ddd      4  ええええええ")
+        expected = (u"        a      b\na       1      あ\n"
+                    u"bb    222    いいい\nc   33333      う\n"
+                    u"ddd     4 ええええええ")
         self.assertEqual(_rep(df), expected)
 
         # all col
         df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
                         'b': [u'あ', u'いいい', u'う', u'ええええええ']},
                        index=['a', 'bb', 'c', 'ddd'])
-        expected = (u"         a       b\na    あああああ       あ\n"
-                    u"bb       い     いいい\nc        う       う\n"
-                    u"ddd    えええ  ええええええ")
+        expected = (u"        a      b\na   あああああ      あ\n"
+                    u"bb      い    いいい\nc       う      う\n"
+                    u"ddd   えええ ええええええ")
         self.assertEqual(_rep(df), expected)
 
         # column name
         df = DataFrame({u'あああああ': [1, 222, 33333, 4],
                         'b': [u'あ', u'いいい', u'う', u'ええええええ']},
                        index=['a', 'bb', 'c', 'ddd'])
-        expected = (u"          b  あああああ\na         あ      1\n"
-                    u"bb      いいい    222\nc         う  33333\n"
-                    u"ddd  ええええええ      4")
+        expected = (u"         b あああああ\na        あ     1\n"
+                    u"bb     いいい   222\nc        う 33333\n"
+                    u"ddd ええええええ     4")
         self.assertEqual(_rep(df), expected)
 
         # index
         df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
                         'b': [u'あ', u'いいい', u'う', u'ええええええ']},
                        index=[u'あああ', u'いいいいいい', u'うう', u'え'])
-        expected = (u"            a       b\nあああ     あああああ       あ\n"
-                    u"いいいいいい      い     いいい\nうう          う       う\n"
-                    u"え         えええ  ええええええ")
+        expected = (u"           a      b\nあああ    あああああ      あ\n"
+                    u"いいいいいい     い    いいい\nうう         う      う\n"
+                    u"え        えええ ええええええ")
         self.assertEqual(_rep(df), expected)
 
         # index name
         df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
                         'b': [u'あ', u'いいい', u'う', u'ええええええ']},
                        index=pd.Index([u'あ', u'い', u'うう', u'え'], name=u'おおおお'))
-        expected = (u"          a       b\nおおおお               \nあ     あああああ       あ\n"
-                    u"い         い     いいい\nうう        う       う\nえ       えええ  ええええええ"
+        expected = (u"         a      b\nおおおお             \nあ    あああああ      あ\n"
+                    u"い        い    いいい\nうう       う      う\nえ      えええ ええええええ"
                     )
         self.assertEqual(_rep(df), expected)
 
@@ -549,8 +549,8 @@ class TestDataFrameFormatting(tm.TestCase):
         df = DataFrame({u'あああ': [u'あああ', u'い', u'う', u'えええええ'],
                         u'いいいいい': [u'あ', u'いいい', u'う', u'ええ']},
                        index=pd.Index([u'あ', u'いいい', u'うう', u'え'], name=u'お'))
-        expected = (u"       あああ いいいいい\nお               \nあ      あああ     あ\n"
-                    u"いいい      い   いいい\nうう       う     う\nえ    えええええ    ええ")
+        expected = (u"      あああ いいいいい\nお              \nあ     あああ     あ\n"
+                    u"いいい     い   いいい\nうう      う     う\nえ   えええええ    ええ")
         self.assertEqual(_rep(df), expected)
 
         # MultiIndex
@@ -558,9 +558,9 @@ class TestDataFrameFormatting(tm.TestCase):
             u'おおお', u'かかかか'), (u'き', u'くく')])
         df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
                         'b': [u'あ', u'いいい', u'う', u'ええええええ']}, index=idx)
-        expected = (u"              a       b\nあ   いい    あああああ       あ\n"
-                    u"う   え         い     いいい\nおおお かかかか      う       う\n"
-                    u"き   くく      えええ  ええええええ")
+        expected = (u"             a      b\nあ   いい   あああああ      あ\n"
+                    u"う   え        い    いいい\nおおお かかかか     う      う\n"
+                    u"き   くく     えええ ええええええ")
         self.assertEqual(_rep(df), expected)
 
         # truncate
@@ -571,14 +571,14 @@ class TestDataFrameFormatting(tm.TestCase):
                                u'ああああ': [u'さ', u'し', u'す', u'せ']},
                               columns=['a', 'b', 'c', u'ああああ'])
 
-            expected = (u"        a ...  ああああ\n0   あああああ ...     さ\n"
-                        u"..    ... ...   ...\n3     えええ ...     せ\n"
+            expected = (u"       a ...  ああああ\n0  あああああ ...     さ\n"
+                        u"..   ... ...   ...\n3    えええ ...     せ\n"
                         u"\n[4 rows x 4 columns]")
             self.assertEqual(_rep(df), expected)
 
             df.index = [u'あああ', u'いいいい', u'う', 'aaa']
-            expected = (u"         a ...  ああああ\nあああ  あああああ ...     さ\n"
-                        u"..     ... ...   ...\naaa    えええ ...     せ\n"
+            expected = (u"        a ...  ああああ\nあああ あああああ ...     さ\n"
+                        u"..    ... ...   ...\naaa   えええ ...     せ\n"
                         u"\n[4 rows x 4 columns]")
             self.assertEqual(_rep(df), expected)
 
@@ -589,27 +589,27 @@ class TestDataFrameFormatting(tm.TestCase):
             df = DataFrame({'a': [u'あ', u'いいい', u'う', u'ええええええ'],
                             'b': [1, 222, 33333, 4]},
                            index=['a', 'bb', 'c', 'ddd'])
-            expected = (u"                a      b\na              あ      1\n"
-                        u"bb         いいい    222\nc              う  33333\n"
-                        u"ddd  ええええええ      4")
+            expected = (u"               a     b\na             あ     1\n"
+                        u"bb        いいい   222\nc             う 33333\n"
+                        u"ddd ええええええ     4")
             self.assertEqual(_rep(df), expected)
 
             # last col
             df = DataFrame({'a': [1, 222, 33333, 4],
                             'b': [u'あ', u'いいい', u'う', u'ええええええ']},
                            index=['a', 'bb', 'c', 'ddd'])
-            expected = (u"         a             b\na        1            あ\n"
-                        u"bb     222        いいい\nc    33333            う\n"
-                        u"ddd      4  ええええええ")
+            expected = (u"        a            b\na       1           あ\n"
+                        u"bb    222       いいい\nc   33333           う\n"
+                        u"ddd     4 ええええええ")
             self.assertEqual(_rep(df), expected)
 
             # all col
             df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
                             'b': [u'あ', u'いいい', u'う', u'ええええええ']},
                            index=['a', 'bb', 'c', 'ddd'])
-            expected = (u"              a             b\na    あああああ            あ\n"
-                        u"bb           い        いいい\nc            う            う\n"
-                        u"ddd      えええ  ええええええ"
+            expected = (u"             a            b\na   あああああ           あ\n"
+                        u"bb          い       いいい\nc           う           う\n"
+                        u"ddd     えええ ええええええ"
                         "")
             self.assertEqual(_rep(df), expected)
 
@@ -617,27 +617,27 @@ class TestDataFrameFormatting(tm.TestCase):
             df = DataFrame({u'あああああ': [1, 222, 33333, 4],
                             'b': [u'あ', u'いいい', u'う', u'ええええええ']},
                            index=['a', 'bb', 'c', 'ddd'])
-            expected = (u"                b  あああああ\na              あ           1\n"
-                        u"bb         いいい         222\nc              う       33333\n"
-                        u"ddd  ええええええ           4")
+            expected = (u"               b あああああ\na             あ          1\n"
+                        u"bb        いいい        222\nc             う      33333\n"
+                        u"ddd ええええええ          4")
             self.assertEqual(_rep(df), expected)
 
             # index
             df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
                             'b': [u'あ', u'いいい', u'う', u'ええええええ']},
                            index=[u'あああ', u'いいいいいい', u'うう', u'え'])
-            expected = (u"                       a             b\nあああ        あああああ            あ\n"
-                        u"いいいいいい          い        いいい\nうう                  う            う\n"
-                        u"え                えええ  ええええええ")
+            expected = (u"                      a            b\nあああ       あああああ           あ\n"
+                        u"いいいいいい         い       いいい\nうう                 う           う\n"
+                        u"え               えええ ええええええ")
             self.assertEqual(_rep(df), expected)
 
             # index name
             df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
                             'b': [u'あ', u'いいい', u'う', u'ええええええ']},
                            index=pd.Index([u'あ', u'い', u'うう', u'え'], name=u'おおおお'))
-            expected = (u"                   a             b\nおおおお                          \n"
-                        u"あ        あああああ            あ\nい                い        いいい\n"
-                        u"うう              う            う\nえ            えええ  ええええええ"
+            expected = (u"                  a            b\nおおおお                        \n"
+                        u"あ       あああああ           あ\nい               い       いいい\n"
+                        u"うう             う           う\nえ           えええ ええええええ"
                         )
             self.assertEqual(_rep(df), expected)
 
@@ -645,9 +645,9 @@ class TestDataFrameFormatting(tm.TestCase):
             df = DataFrame({u'あああ': [u'あああ', u'い', u'う', u'えええええ'],
                             u'いいいいい': [u'あ', u'いいい', u'う', u'ええ']},
                            index=pd.Index([u'あ', u'いいい', u'うう', u'え'], name=u'お'))
-            expected = (u"            あああ いいいいい\nお                           \n"
-                        u"あ          あああ         あ\nいいい          い     いいい\n"
-                        u"うう            う         う\nえ      えええええ       ええ")
+            expected = (u"           あああ いいいいい\nお                          \n"
+                        u"あ         あああ         あ\nいいい         い     いいい\n"
+                        u"うう           う         う\nえ     えええええ       ええ")
             self.assertEqual(_rep(df), expected)
 
             # MultiIndex
@@ -655,9 +655,9 @@ class TestDataFrameFormatting(tm.TestCase):
                 u'おおお', u'かかかか'), (u'き', u'くく')])
             df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
                             'b': [u'あ', u'いいい', u'う', u'ええええええ']}, index=idx)
-            expected = (u"                          a             b\nあ     いい      あああああ            あ\n"
-                        u"う     え                い        いいい\nおおお かかかか          う            う\n"
-                        u"き     くく          えええ  ええええええ")
+            expected = (u"                         a            b\nあ     いい     あああああ           あ\n"
+                        u"う     え               い       いいい\nおおお かかかか         う           う\n"
+                        u"き     くく         えええ ええええええ")
             self.assertEqual(_rep(df), expected)
 
             # truncate
@@ -670,14 +670,14 @@ class TestDataFrameFormatting(tm.TestCase):
                                    u'ああああ': [u'さ', u'し', u'す', u'せ']},
                                   columns=['a', 'b', 'c', u'ああああ'])
 
-                expected = (u"             a   ...    ああああ\n0   あああああ   ...          さ\n"
-                            u"..         ...   ...         ...\n3       えええ   ...          せ\n"
+                expected = (u"            a   ...    ああああ\n0  あああああ   ...          さ\n"
+                            u"..        ...   ...         ...\n3      えええ   ...          せ\n"
                             u"\n[4 rows x 4 columns]")
                 self.assertEqual(_rep(df), expected)
 
                 df.index = [u'あああ', u'いいいい', u'う', 'aaa']
-                expected = (u"                 a   ...    ああああ\nあああ  あああああ   ...          さ\n"
-                            u"...            ...   ...         ...\naaa         えええ   ...          せ\n"
+                expected = (u"                a   ...    ああああ\nあああ あああああ   ...          さ\n"
+                            u"...           ...   ...         ...\naaa        えええ   ...          せ\n"
                             u"\n[4 rows x 4 columns]")
                 self.assertEqual(_rep(df), expected)
 
@@ -685,9 +685,9 @@ class TestDataFrameFormatting(tm.TestCase):
             df = DataFrame({u'あああああ': [1, 222, 33333, 4],
                             'b': [u'あ', u'いいい', u'¡¡', u'ええええええ']},
                            index=['a', 'bb', 'c', '¡¡¡'])
-            expected = (u"                b  あああああ\na              あ           1\n"
-                        u"bb         いいい         222\nc              ¡¡       33333\n"
-                        u"¡¡¡  ええええええ           4")
+            expected = (u"               b あああああ\na             あ          1\n"
+                        u"bb        いいい        222\nc             ¡¡      33333\n"
+                        u"¡¡¡ ええええええ          4")
             self.assertEqual(_rep(df), expected)
 
     def test_to_string_buffer_all_unicode(self):
@@ -792,12 +792,12 @@ class TestDataFrameFormatting(tm.TestCase):
         df = pd.DataFrame({"dt": dts,
                            "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
         with option_context('display.max_rows', 5):
-            expected = ('                          dt   x\n'
-                        '0  2011-01-01 00:00:00-05:00   1\n'
-                        '1  2011-01-01 00:00:00-05:00   2\n'
-                        '..                       ...  ..\n'
-                        '8                        NaT   9\n'
-                        '9                        NaT  10\n\n'
+            expected = ('                          dt  x\n'
+                        '0  2011-01-01 00:00:00-05:00  1\n'
+                        '1  2011-01-01 00:00:00-05:00  2\n'
+                        '..                       ... ..\n'
+                        '8                        NaT  9\n'
+                        '9                        NaT 10\n\n'
                         '[10 rows x 2 columns]')
             self.assertEqual(repr(df), expected)
 
@@ -805,12 +805,12 @@ class TestDataFrameFormatting(tm.TestCase):
         df = pd.DataFrame({"dt": dts,
                            "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
         with option_context('display.max_rows', 5):
-            expected = ('                          dt   x\n'
-                        '0                        NaT   1\n'
-                        '1                        NaT   2\n'
-                        '..                       ...  ..\n'
-                        '8  2011-01-01 00:00:00-05:00   9\n'
-                        '9  2011-01-01 00:00:00-05:00  10\n\n'
+            expected = ('                          dt  x\n'
+                        '0                        NaT  1\n'
+                        '1                        NaT  2\n'
+                        '..                       ... ..\n'
+                        '8  2011-01-01 00:00:00-05:00  9\n'
+                        '9  2011-01-01 00:00:00-05:00 10\n\n'
                         '[10 rows x 2 columns]')
             self.assertEqual(repr(df), expected)
 
@@ -819,13 +819,15 @@ class TestDataFrameFormatting(tm.TestCase):
         df = pd.DataFrame({"dt": dts,
                            "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
         with option_context('display.max_rows', 5):
-            expected = ('                           dt   x\n'
-                        '0   2011-01-01 00:00:00+09:00   1\n'
-                        '1   2011-01-01 00:00:00+09:00   2\n'
-                        '..                        ...  ..\n'
-                        '8   2011-01-01 00:00:00-05:00   9\n'
-                        '9   2011-01-01 00:00:00-05:00  10\n\n'
+            expected = ('                          dt  x\n'
+                        '0  2011-01-01 00:00:00+09:00  1\n'
+                        '1  2011-01-01 00:00:00+09:00  2\n'
+                        '..                       ... ..\n'
+                        '8  2011-01-01 00:00:00-05:00  9\n'
+                        '9  2011-01-01 00:00:00-05:00 10\n\n'
                         '[10 rows x 2 columns]')
+            print(repr(df))
+            print(expected)
             self.assertEqual(repr(df), expected)
 
     def test_to_html_with_col_space(self):
@@ -1865,21 +1867,21 @@ class TestDataFrameFormatting(tm.TestCase):
         y = df.set_index(['id1', 'id2', 'id3'])
         result = y.to_string()
         expected = u(
-            '             value\nid1 id2 id3       \n1a3 NaN 78d    123\n9h4 d67 79d     64')
+            '            value\nid1 id2 id3      \n1a3 NaN 78d   123\n9h4 d67 79d    64')
         self.assertEqual(result, expected)
 
         # index
         y = df.set_index('id2')
         result = y.to_string()
         expected = u(
-            '     id1  id3  value\nid2                 \nNaN  1a3  78d    123\nd67  9h4  79d     64')
+            '    id1 id3 value\nid2              \nNaN 1a3 78d   123\nd67 9h4 79d    64')
         self.assertEqual(result, expected)
 
         # with append (this failed in 0.12)
         y = df.set_index(['id1', 'id2']).set_index('id3', append=True)
         result = y.to_string()
         expected = u(
-            '             value\nid1 id2 id3       \n1a3 NaN 78d    123\n9h4 d67 79d     64')
+            '            value\nid1 id2 id3      \n1a3 NaN 78d   123\n9h4 d67 79d    64')
         self.assertEqual(result, expected)
 
         # all-nan in mi
@@ -1888,7 +1890,7 @@ class TestDataFrameFormatting(tm.TestCase):
         y = df2.set_index('id2')
         result = y.to_string()
         expected = u(
-            '     id1  id3  value\nid2                 \nNaN  1a3  78d    123\nNaN  9h4  79d     64')
+            '    id1 id3 value\nid2              \nNaN 1a3 78d   123\nNaN 9h4 79d    64')
         self.assertEqual(result, expected)
 
         # partial nan in mi
@@ -1897,7 +1899,7 @@ class TestDataFrameFormatting(tm.TestCase):
         y = df2.set_index(['id2', 'id3'])
         result = y.to_string()
         expected = u(
-            '         id1  value\nid2 id3            \nNaN 78d  1a3    123\n    79d  9h4     64')
+            '        id1 value\nid2 id3          \nNaN 78d 1a3   123\n    79d 9h4    64')
         self.assertEqual(result, expected)
 
         df = DataFrame({'id1': {0: np.nan,
@@ -1912,7 +1914,7 @@ class TestDataFrameFormatting(tm.TestCase):
         y = df.set_index(['id1', 'id2', 'id3'])
         result = y.to_string()
         expected = u(
-            '             value\nid1 id2 id3       \nNaN NaN NaN    123\n9h4 d67 79d     64')
+            '            value\nid1 id2 id3      \nNaN NaN NaN   123\n9h4 d67 79d    64')
         self.assertEqual(result, expected)
 
     def test_to_string(self):
@@ -1969,7 +1971,7 @@ class TestDataFrameFormatting(tm.TestCase):
         df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
 
         df_s = df.to_string(header=False)
-        expected = "0  1  4\n1  2  5\n2  3  6"
+        expected = "0 1 4\n1 2 5\n2 3 6"
 
         self.assertEqual(df_s, expected)
 
@@ -1977,7 +1979,7 @@ class TestDataFrameFormatting(tm.TestCase):
         df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
 
         df_s = df.to_string(index=False)
-        expected = "x  y\n1  4\n2  5\n3  6"
+        expected = "x y\n1 4\n2 5\n3 6"
 
         self.assertEqual(df_s, expected)
 
@@ -1985,7 +1987,7 @@ class TestDataFrameFormatting(tm.TestCase):
         df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, index=False)
-        expected = "x  \\\n1   \n2   \n3   \n\ny  \n4  \n5  \n6"
+        expected = "x  \\\n1   \n2   \n3   \n\ny  \n4  \n5  \n6  "
 
         self.assertEqual(df_s, expected)
 
@@ -2016,7 +2018,7 @@ class TestDataFrameFormatting(tm.TestCase):
         df = DataFrame({'x': [3234, 0.253]})
         df_s = df.to_string()
 
-        expected = ('          x\n' '0  3234.000\n' '1     0.253')
+        expected = ('         x\n' '0 3234.000\n' '1    0.253')
         self.assertEqual(df_s, expected)
 
         self.reset_display_options()
@@ -2027,13 +2029,13 @@ class TestDataFrameFormatting(tm.TestCase):
         # Python 2.5 just wants me to be sad. And debian 32-bit
         # sys.version_info[0] == 2 and sys.version_info[1] < 6:
         if _three_digit_exp():
-            expected = ('               x\n'
-                        '0  1.000000e+009\n'
-                        '1  2.512000e-001')
-        else:
             expected = ('              x\n'
-                        '0  1.000000e+09\n'
-                        '1  2.512000e-01')
+                        '0 1.000000e+009\n'
+                        '1 2.512000e-001')
+        else:
+            expected = ('             x\n'
+                        '0 1.000000e+09\n'
+                        '1 2.512000e-01')
         self.assertEqual(df_s, expected)
 
     def test_to_string_small_float_values(self):
@@ -2063,12 +2065,12 @@ class TestDataFrameFormatting(tm.TestCase):
         df = DataFrame(lrange(5), index=index)
 
         result = df.to_string()
-        expected = ('     0\n'
-                    '1.5  0\n'
-                    '2.0  1\n'
-                    '3.0  2\n'
-                    '4.0  3\n'
-                    '5.0  4')
+        expected = ('    0\n'
+                    '1.5 0\n'
+                    '2.0 1\n'
+                    '3.0 2\n'
+                    '4.0 3\n'
+                    '5.0 4')
         self.assertEqual(result, expected)
 
     def test_to_string_ascii_error(self):
@@ -2094,10 +2096,10 @@ class TestDataFrameFormatting(tm.TestCase):
         rs = df.to_string(formatters={'__index__': lambda x: 'abc' [x]})
 
         xp = """\
-    0   1   2   3   4
-a   0   1   2   3   4
-b   5   6   7   8   9
-c  10  11  12  13  14\
+   0  1  2  3  4
+a  0  1  2  3  4
+b  5  6  7  8  9
+c 10 11 12 13 14\
 """
 
         self.assertEqual(rs, xp)
@@ -2106,7 +2108,7 @@ c  10  11  12  13  14\
         self.reset_display_options()
         df = DataFrame({'x': [3234, 0.253]})
         df_s = df.to_string(justify='left')
-        expected = ('   x       \n' '0  3234.000\n' '1     0.253')
+        expected = ('  x       \n' '0 3234.000\n' '1    0.253')
         self.assertEqual(df_s, expected)
 
     def test_to_string_format_na(self):
@@ -2115,28 +2117,28 @@ c  10  11  12  13  14\
                         'B': [np.nan, 'foo', 'foooo', 'fooooo', 'bar']})
         result = df.to_string()
 
-        expected = ('        A       B\n'
-                    '0     NaN     NaN\n'
-                    '1 -1.0000     foo\n'
-                    '2 -2.1234   foooo\n'
-                    '3  3.0000  fooooo\n'
-                    '4  4.0000     bar')
+        expected = ('        A      B\n'
+                    '0     NaN    NaN\n'
+                    '1 -1.0000    foo\n'
+                    '2 -2.1234  foooo\n'
+                    '3  3.0000 fooooo\n'
+                    '4  4.0000    bar')
         self.assertEqual(result, expected)
 
         df = DataFrame({'A': [np.nan, -1., -2., 3., 4.],
                         'B': [np.nan, 'foo', 'foooo', 'fooooo', 'bar']})
         result = df.to_string()
 
-        expected = ('     A       B\n'
-                    '0  NaN     NaN\n'
-                    '1 -1.0     foo\n'
-                    '2 -2.0   foooo\n'
-                    '3  3.0  fooooo\n'
-                    '4  4.0     bar')
+        expected = ('     A      B\n'
+                    '0  NaN    NaN\n'
+                    '1 -1.0    foo\n'
+                    '2 -2.0  foooo\n'
+                    '3  3.0 fooooo\n'
+                    '4  4.0    bar')
         self.assertEqual(result, expected)
 
     def test_to_string_line_width(self):
-        df = DataFrame(123, lrange(10, 15), lrange(30))
+        df = DataFrame(123, lrange(10000, 10005), lrange(30))
         s = df.to_string(line_width=80)
         self.assertEqual(max(len(l) for l in s.split('\n')), 80)
 
@@ -2838,10 +2840,10 @@ c  10  11  12  13  14\
         withindex_result = df.to_latex()
         withindex_expected = r"""\begin{tabular}{lrl}
 \toprule
-{} &  a &   b \\
+{} & a &  b \\
 \midrule
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
+0 & 1 & b1 \\
+1 & 2 & b2 \\
 \bottomrule
 \end{tabular}
 """
@@ -2851,10 +2853,10 @@ c  10  11  12  13  14\
         withoutindex_result = df.to_latex(index=False)
         withoutindex_expected = r"""\begin{tabular}{rl}
 \toprule
- a &   b \\
+a &  b \\
 \midrule
- 1 &  b1 \\
- 2 &  b2 \\
+1 & b1 \\
+2 & b2 \\
 \bottomrule
 \end{tabular}
 """
@@ -2869,10 +2871,10 @@ c  10  11  12  13  14\
         withindex_result = df.to_latex(column_format='ccc')
         withindex_expected = r"""\begin{tabular}{ccc}
 \toprule
-{} &  a &   b \\
+{} & a &  b \\
 \midrule
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
+0 & 1 & b1 \\
+1 & 2 & b2 \\
 \bottomrule
 \end{tabular}
 """
@@ -2896,11 +2898,11 @@ c  10  11  12  13  14\
 
         expected = r"""\begin{tabular}{llrrl}
 \toprule
-{} & datetime64 &  float & int &    object \\
+{} & datetime64 &  float & int &   object \\
 \midrule
-index: 0 &    2016-01 & [ 1.0] & 0x1 &  -(1, 2)- \\
-index: 1 &    2016-02 & [ 2.0] & 0x2 &    -True- \\
-index: 2 &    2016-03 & [ 3.0] & 0x3 &   -False- \\
+index: 0 &    2016-01 & [ 1.0] & 0x1 & -(1, 2)- \\
+index: 1 &    2016-02 & [ 2.0] & 0x2 &   -True- \\
+index: 2 &    2016-03 & [ 3.0] & 0x3 &  -False- \\
 \bottomrule
 \end{tabular}
 """
@@ -2911,10 +2913,10 @@ index: 2 &    2016-03 & [ 3.0] & 0x3 &   -False- \\
         result = df.to_latex()
         expected = r"""\begin{tabular}{ll}
 \toprule
-{} &  x \\
-{} &  y \\
+{} & x \\
+{} & y \\
 \midrule
-0 &  a \\
+0 & a \\
 \bottomrule
 \end{tabular}
 """
@@ -2924,9 +2926,9 @@ index: 2 &    2016-03 & [ 3.0] & 0x3 &   -False- \\
         result = df.T.to_latex()
         expected = r"""\begin{tabular}{lll}
 \toprule
-  &   &  0 \\
+  &   & 0 \\
 \midrule
-x & y &  a \\
+x & y & a \\
 \bottomrule
 \end{tabular}
 """
@@ -2943,13 +2945,13 @@ x & y &  a \\
         result = df.to_latex()
         expected = r"""\begin{tabular}{llrrrr}
 \toprule
-   &   &  0 &  1 &  2 &  3 \\
+   &   & 0 & 1 & 2 & 3 \\
 \midrule
-c1 & 0 &  0 &  1 &  2 &  3 \\
-   & 1 &  4 &  5 &  6 &  7 \\
-c2 & 0 &  0 &  1 &  2 &  3 \\
-   & 1 &  4 &  5 &  6 &  7 \\
-c3 & 0 &  0 &  1 &  2 &  3 \\
+c1 & 0 & 0 & 1 & 2 & 3 \\
+   & 1 & 4 & 5 & 6 & 7 \\
+c2 & 0 & 0 & 1 & 2 & 3 \\
+   & 1 & 4 & 5 & 6 & 7 \\
+c3 & 0 & 0 & 1 & 2 & 3 \\
 \bottomrule
 \end{tabular}
 """
@@ -2963,13 +2965,13 @@ c3 & 0 &  0 &  1 &  2 &  3 \\
         result = df.set_index(['a', 'b']).to_latex()
         expected = r"""\begin{tabular}{llr}
 \toprule
-  &   &  c \\
-a & b &    \\
+  &   & c \\
+a & b &   \\
 \midrule
-0 & a &  1 \\
-  & b &  2 \\
-1 & a &  3 \\
-  & b &  4 \\
+0 & a & 1 \\
+  & b & 2 \\
+1 & a & 3 \\
+  & b & 4 \\
 \bottomrule
 \end{tabular}
 """
@@ -2979,25 +2981,25 @@ a & b &    \\
         result = df.groupby('a').describe().to_latex()
         expected = r"""\begin{tabular}{llr}
 \toprule
-  &       &         c \\
-a & {} &           \\
+  &       &        c \\
+a & {} &          \\
 \midrule
-0 & count &  2.000000 \\
-  & mean &  1.500000 \\
-  & std &  0.707107 \\
-  & min &  1.000000 \\
-  & 25\% &  1.250000 \\
-  & 50\% &  1.500000 \\
-  & 75\% &  1.750000 \\
-  & max &  2.000000 \\
-1 & count &  2.000000 \\
-  & mean &  3.500000 \\
-  & std &  0.707107 \\
-  & min &  3.000000 \\
-  & 25\% &  3.250000 \\
-  & 50\% &  3.500000 \\
-  & 75\% &  3.750000 \\
-  & max &  4.000000 \\
+0 & count & 2.000000 \\
+  & mean & 1.500000 \\
+  & std & 0.707107 \\
+  & min & 1.000000 \\
+  & 25\% & 1.250000 \\
+  & 50\% & 1.500000 \\
+  & 75\% & 1.750000 \\
+  & max & 2.000000 \\
+1 & count & 2.000000 \\
+  & mean & 3.500000 \\
+  & std & 0.707107 \\
+  & min & 3.000000 \\
+  & 25\% & 3.250000 \\
+  & 50\% & 3.500000 \\
+  & 75\% & 3.750000 \\
+  & max & 4.000000 \\
 \bottomrule
 \end{tabular}
 """
@@ -3047,7 +3049,7 @@ b &       b &     b \\
         withindex_result = df.to_latex(longtable=True)
         withindex_expected = r"""\begin{longtable}{lrl}
 \toprule
-{} &  a &   b \\
+{} & a &  b \\
 \midrule
 \endhead
 \midrule
@@ -3057,17 +3059,16 @@ b &       b &     b \\
 
 \bottomrule
 \endlastfoot
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
+0 & 1 & b1 \\
+1 & 2 & b2 \\
 \end{longtable}
 """
-
         self.assertEqual(withindex_result, withindex_expected)
 
         withoutindex_result = df.to_latex(index=False, longtable=True)
         withoutindex_expected = r"""\begin{longtable}{rl}
 \toprule
- a &   b \\
+a &  b \\
 \midrule
 \endhead
 \midrule
@@ -3077,8 +3078,8 @@ b &       b &     b \\
 
 \bottomrule
 \endlastfoot
- 1 &  b1 \\
- 2 &  b2 \\
+1 & b1 \\
+2 & b2 \\
 \end{longtable}
 """
 
@@ -3091,18 +3092,18 @@ b &       b &     b \\
         observed = df.to_latex()
         expected = r"""\begin{tabular}{ll}
 \toprule
-{} &  0 \\
+{} & 0 \\
 \midrule
-0 &  \& \\
-1 &  \% \\
-2 &  \$ \\
-3 &  \# \\
-4 &  \_ \\
-5 &  \{ \\
-6 &  \} \\
-7 &  \textasciitilde \\
-8 &  \textasciicircum \\
-9 &  \textbackslash \\
+0 & \& \\
+1 & \% \\
+2 & \$ \\
+3 & \# \\
+4 & \_ \\
+5 & \{ \\
+6 & \} \\
+7 & \textasciitilde \\
+8 & \textasciicircum \\
+9 & \textbackslash \\
 \bottomrule
 \end{tabular}
 """
@@ -3115,8 +3116,8 @@ b &       b &     b \\
         withindex_result = df.to_latex(header=False)
         withindex_expected = r"""\begin{tabular}{lrl}
 \toprule
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
+0 & 1 & b1 \\
+1 & 2 & b2 \\
 \bottomrule
 \end{tabular}
 """
@@ -3126,8 +3127,8 @@ b &       b &     b \\
         withoutindex_result = df.to_latex(index=False, header=False)
         withoutindex_expected = r"""\begin{tabular}{rl}
 \toprule
- 1 &  b1 \\
- 2 &  b2 \\
+1 & b1 \\
+2 & b2 \\
 \bottomrule
 \end{tabular}
 """
@@ -3142,10 +3143,10 @@ b &       b &     b \\
         print("WHAT THE")
         withindex_expected = r"""\begin{tabular}{lrl}
 \toprule
-{} &    a &   b \\
+{} &   a &  b \\
 \midrule
-0 &  1,0 &  b1 \\
-1 &  2,1 &  b2 \\
+0 & 1,0 & b1 \\
+1 & 2,1 & b2 \\
 \bottomrule
 \end{tabular}
 """
@@ -3363,9 +3364,9 @@ $1$,$2$
                                  pd.Period('2011-03-01 09:00', freq='H'),
                                  pd.Period('2011-04', freq='M')],
                            'C': list('abcd')})
-        exp = ("        A                B  C\n0 2013-01          2011-01  a\n"
-               "1 2013-02       2011-02-01  b\n2 2013-03 2011-03-01 09:00  c\n"
-               "3 2013-04          2011-04  d")
+        exp = ("        A                B C\n0 2013-01          2011-01 a\n"
+               "1 2013-02       2011-02-01 b\n2 2013-03 2011-03-01 09:00 c\n"
+               "3 2013-04          2011-04 d")
         self.assertEqual(str(df), exp)
 
 
@@ -3433,12 +3434,12 @@ class TestSeriesFormatting(tm.TestCase):
         # but don't count NAs as floats
         s = Series(['foo', np.nan, 'bar', 'baz'])
         result = s.to_string()
-        expected = (u('0    foo\n') + '1    NaN\n' + '2    bar\n' + '3    baz')
+        expected = (u('0   foo\n') + '1   NaN\n' + '2   bar\n' + '3   baz')
         self.assertEqual(result, expected)
 
         s = Series(['foo', 5, 'bar', 'baz'])
         result = s.to_string()
-        expected = (u('0    foo\n') + '1      5\n' + '2    bar\n' + '3    baz')
+        expected = (u('0   foo\n') + '1     5\n' + '2   bar\n' + '3   baz')
         self.assertEqual(result, expected)
 
     def test_to_string_float_na_spacing(self):
@@ -3472,50 +3473,50 @@ class TestSeriesFormatting(tm.TestCase):
         # unicode index
         s = Series(['a', 'bb', 'CCC', 'D'],
                    index=[u'あ', u'いい', u'ううう', u'ええええ'])
-        expected = (u"あ         a\nいい       bb\nううう     CCC\n"
-                    u"ええええ      D\ndtype: object")
+        expected = (u"あ        a\nいい      bb\nううう    CCC\n"
+                    u"ええええ     D\ndtype: object")
         self.assertEqual(_rep(s), expected)
 
         # unicode values
         s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
                    index=['a', 'bb', 'c', 'ddd'])
-        expected = (u"a         あ\nbb       いい\nc       ううう\n"
-                    u"ddd    ええええ\ndtype: object")
+        expected = (u"a        あ\nbb      いい\nc      ううう\n"
+                    u"ddd   ええええ\ndtype: object")
         self.assertEqual(_rep(s), expected)
 
         # both
         s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
                    index=[u'ああ', u'いいいい', u'う', u'えええ'])
-        expected = (u"ああ         あ\nいいいい      いい\nう        ううう\n"
-                    u"えええ     ええええ\ndtype: object")
+        expected = (u"ああ        あ\nいいいい     いい\nう       ううう\n"
+                    u"えええ    ええええ\ndtype: object")
         self.assertEqual(_rep(s), expected)
 
         # unicode footer
         s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
                    index=[u'ああ', u'いいいい', u'う', u'えええ'], name=u'おおおおおおお')
-        expected = (u"ああ         あ\nいいいい      いい\nう        ううう\n"
-                    u"えええ     ええええ\nName: おおおおおおお, dtype: object")
+        expected = (u"ああ        あ\nいいいい     いい\nう       ううう\n"
+                    u"えええ    ええええ\nName: おおおおおおお, dtype: object")
         self.assertEqual(_rep(s), expected)
 
         # MultiIndex
         idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'), (
             u'おおお', u'かかかか'), (u'き', u'くく')])
         s = Series([1, 22, 3333, 44444], index=idx)
-        expected = (u"あ    いい          1\nう    え          22\nおおお  かかかか     3333\n"
-                    u"き    くく      44444\ndtype: int64")
+        expected = (u"あ    いい         1\nう    え         22\nおおお  かかかか    3333\n"
+                    u"き    くく     44444\ndtype: int64")
         self.assertEqual(_rep(s), expected)
 
         # object dtype, shorter than unicode repr
         s = Series([1, 22, 3333, 44444], index=[1, 'AB', np.nan, u'あああ'])
-        expected = (u"1          1\nAB        22\nNaN     3333\n"
-                    u"あああ    44444\ndtype: int64")
+        expected = (u"1         1\nAB       22\nNaN    3333\n"
+                    u"あああ   44444\ndtype: int64")
         self.assertEqual(_rep(s), expected)
 
         # object dtype, longer than unicode repr
         s = Series([1, 22, 3333, 44444],
                    index=[1, 'AB', pd.Timestamp('2011-01-01'), u'あああ'])
-        expected = (u"1                          1\nAB                        22\n"
-                    u"2011-01-01 00:00:00     3333\nあああ                    44444\ndtype: int64"
+        expected = (u"1                         1\nAB                       22\n"
+                    u"2011-01-01 00:00:00    3333\nあああ                   44444\ndtype: int64"
                     )
         self.assertEqual(_rep(s), expected)
 
@@ -3523,13 +3524,13 @@ class TestSeriesFormatting(tm.TestCase):
         with option_context('display.max_rows', 3):
             s = Series([u'あ', u'いい', u'ううう', u'ええええ'], name=u'おおおおおおお')
 
-            expected = (u"0       あ\n     ... \n"
-                        u"3    ええええ\nName: おおおおおおお, dtype: object")
+            expected = (u"0      あ\n    ... \n"
+                        u"3   ええええ\nName: おおおおおおお, dtype: object")
             self.assertEqual(_rep(s), expected)
 
             s.index = [u'ああ', u'いいいい', u'う', u'えええ']
-            expected = (u"ああ        あ\n       ... \n"
-                        u"えええ    ええええ\nName: おおおおおおお, dtype: object")
+            expected = (u"ああ       あ\n      ... \n"
+                        u"えええ   ええええ\nName: おおおおおおお, dtype: object")
             self.assertEqual(_rep(s), expected)
 
         # Emable Unicode option -----------------------------------------
@@ -3538,70 +3539,70 @@ class TestSeriesFormatting(tm.TestCase):
             # unicode index
             s = Series(['a', 'bb', 'CCC', 'D'],
                        index=[u'あ', u'いい', u'ううう', u'ええええ'])
-            expected = (u"あ            a\nいい         bb\nううう      CCC\n"
-                        u"ええええ      D\ndtype: object")
+            expected = (u"あ           a\nいい        bb\nううう     CCC\n"
+                        u"ええええ     D\ndtype: object")
             self.assertEqual(_rep(s), expected)
 
             # unicode values
             s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
                        index=['a', 'bb', 'c', 'ddd'])
-            expected = (u"a            あ\nbb         いい\nc        ううう\n"
-                        u"ddd    ええええ\ndtype: object")
+            expected = (u"a           あ\nbb        いい\nc       ううう\n"
+                        u"ddd   ええええ\ndtype: object")
             self.assertEqual(_rep(s), expected)
 
             # both
             s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
                        index=[u'ああ', u'いいいい', u'う', u'えええ'])
-            expected = (u"ああ              あ\nいいいい        いい\nう            ううう\n"
-                        u"えええ      ええええ\ndtype: object")
+            expected = (u"ああ             あ\nいいいい       いい\nう           ううう\n"
+                        u"えええ     ええええ\ndtype: object")
             self.assertEqual(_rep(s), expected)
 
             # unicode footer
             s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
                        index=[u'ああ', u'いいいい', u'う', u'えええ'], name=u'おおおおおおお')
-            expected = (u"ああ              あ\nいいいい        いい\nう            ううう\n"
-                        u"えええ      ええええ\nName: おおおおおおお, dtype: object")
+            expected = (u"ああ             あ\nいいいい       いい\nう           ううう\n"
+                        u"えええ     ええええ\nName: おおおおおおお, dtype: object")
             self.assertEqual(_rep(s), expected)
 
             # MultiIndex
             idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'), (
                 u'おおお', u'かかかか'), (u'き', u'くく')])
             s = Series([1, 22, 3333, 44444], index=idx)
-            expected = (u"あ      いい            1\nう      え             22\nおおお  かかかか     3333\n"
-                        u"き      くく        44444\ndtype: int64")
+            expected = (u"あ      いい           1\nう      え            22\nおおお  かかかか    3333\n"
+                        u"き      くく       44444\ndtype: int64")
             self.assertEqual(_rep(s), expected)
 
             # object dtype, shorter than unicode repr
             s = Series([1, 22, 3333, 44444], index=[1, 'AB', np.nan, u'あああ'])
-            expected = (u"1             1\nAB           22\nNaN        3333\n"
-                        u"あああ    44444\ndtype: int64")
+            expected = (u"1            1\nAB          22\nNaN       3333\n"
+                        u"あああ   44444\ndtype: int64")
             self.assertEqual(_rep(s), expected)
 
             # object dtype, longer than unicode repr
             s = Series([1, 22, 3333, 44444],
                        index=[1, 'AB', pd.Timestamp('2011-01-01'), u'あああ'])
-            expected = (u"1                          1\nAB                        22\n"
-                        u"2011-01-01 00:00:00     3333\nあああ                 44444\ndtype: int64"
+            expected = (u"1                         1\nAB                       22\n"
+                        u"2011-01-01 00:00:00    3333\nあああ                44444\ndtype: int64"
                         )
             self.assertEqual(_rep(s), expected)
 
             # truncate
             with option_context('display.max_rows', 3):
                 s = Series([u'あ', u'いい', u'ううう', u'ええええ'], name=u'おおおおおおお')
-                expected = (u"0          あ\n       ...   \n"
-                            u"3    ええええ\nName: おおおおおおお, dtype: object")
+                expected = (u"0         あ\n      ...   \n"
+                            u"3   ええええ\nName: おおおおおおお, dtype: object")
                 self.assertEqual(_rep(s), expected)
 
                 s.index = [u'ああ', u'いいいい', u'う', u'えええ']
-                expected = (u"ああ            あ\n            ...   \n"
-                            u"えええ    ええええ\nName: おおおおおおお, dtype: object")
+                expected = (u"ああ           あ\n           ...   \n"
+                            u"えええ   ええええ\nName: おおおおおおお, dtype: object")
                 self.assertEqual(_rep(s), expected)
 
             # ambiguous unicode
             s = Series([u'¡¡', u'い¡¡', u'ううう', u'ええええ'],
                        index=[u'ああ', u'¡¡¡¡いい', u'¡¡', u'えええ'])
-            expected = (u"ああ              ¡¡\n¡¡¡¡いい        い¡¡\n¡¡            ううう\n"
-                        u"えええ      ええええ\ndtype: object")
+            expected = (u"ああ             ¡¡\n¡¡¡¡いい       い¡¡\n¡¡           ううう\n"
+                        u"えええ     ええええ\ndtype: object")
             self.assertEqual(_rep(s), expected)
 
     def test_float_trim_zeros(self):
@@ -3703,8 +3704,8 @@ class TestSeriesFormatting(tm.TestCase):
         # GH 12615
         index = pd.period_range('2013-01', periods=6, freq='M')
         s = Series(np.arange(6, dtype='int64'), index=index)
-        exp = ("2013-01    0\n2013-02    1\n2013-03    2\n2013-04    3\n"
-               "2013-05    4\n2013-06    5\nFreq: M, dtype: int64")
+        exp = ("2013-01   0\n2013-02   1\n2013-03   2\n2013-04   3\n"
+               "2013-05   4\n2013-06   5\nFreq: M, dtype: int64")
         self.assertEqual(str(s), exp)
 
         s = Series(index)
@@ -3762,10 +3763,12 @@ class TestSeriesFormatting(tm.TestCase):
         s = pd.Series([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.9999, 1, 1] * 10)
         with option_context("display.max_rows", 10):
             res = repr(s)
-        exp = ('0      1.0000\n1      1.0000\n2      1.0000\n3      '
-               '1.0000\n4      1.0000\n        ...  \n125    '
-               '1.0000\n126    1.0000\n127    0.9999\n128    '
-               '1.0000\n129    1.0000\ndtype: float64')
+        exp = ('0     1.0000\n1     1.0000\n2     1.0000\n3     '
+               '1.0000\n4     1.0000\n       ...  \n125   '
+               '1.0000\n126   1.0000\n127   0.9999\n128   '
+               '1.0000\n129   1.0000\ndtype: float64')
+        print(res)
+        print(exp)
         self.assertEqual(res, exp)
 
     @staticmethod
@@ -3793,16 +3796,16 @@ class TestSeriesFormatting(tm.TestCase):
             exp = '0     a\n1     a\n     ..\n98    a\n99    a\ndtype: object'
             self.assertEqual(exp, res)
             res = repr(test_sers['twol'])
-            exp = ('0     ab\n1     ab\n      ..\n98    ab\n99    ab\ndtype:'
+            exp = ('0    ab\n1    ab\n     ..\n98   ab\n99   ab\ndtype:'
                    ' object')
             self.assertEqual(exp, res)
             res = repr(test_sers['asc'])
-            exp = ('0         a\n1        ab\n      ...  \n4     abcde\n5'
-                   '    abcdef\ndtype: object')
+            exp = ('0        a\n1       ab\n     ...  \n4    abcde\n5'
+                   '   abcdef\ndtype: object')
             self.assertEqual(exp, res)
             res = repr(test_sers['desc'])
-            exp = ('5    abcdef\n4     abcde\n      ...  \n1        ab\n0'
-                   '         a\ndtype: object')
+            exp = ('5   abcdef\n4    abcde\n     ...  \n1       ab\n0'
+                   '        a\ndtype: object')
             self.assertEqual(exp, res)
 
     def test_ncols(self):
@@ -3833,31 +3836,31 @@ class TestSeriesFormatting(tm.TestCase):
         s = Series([0, 100, 200, 400])
         with option_context("display.max_rows", 2):
             strrepr = repr(s).replace('\n', '')
-        self.assertEqual(getndots(strrepr), 3)
+        self.assertEqual(getndots(strrepr), 2)
 
     def test_to_string_name(self):
         s = Series(range(100), dtype='int64')
         s.name = 'myser'
         res = s.to_string(max_rows=2, name=True)
-        exp = '0      0\n      ..\n99    99\nName: myser'
+        exp = '0     0\n     ..\n99   99\nName: myser'
         self.assertEqual(res, exp)
         res = s.to_string(max_rows=2, name=False)
-        exp = '0      0\n      ..\n99    99'
+        exp = '0     0\n     ..\n99   99'
         self.assertEqual(res, exp)
 
     def test_to_string_dtype(self):
         s = Series(range(100), dtype='int64')
         res = s.to_string(max_rows=2, dtype=True)
-        exp = '0      0\n      ..\n99    99\ndtype: int64'
+        exp = '0     0\n     ..\n99   99\ndtype: int64'
         self.assertEqual(res, exp)
         res = s.to_string(max_rows=2, dtype=False)
-        exp = '0      0\n      ..\n99    99'
+        exp = '0     0\n     ..\n99   99'
         self.assertEqual(res, exp)
 
     def test_to_string_length(self):
         s = Series(range(100), dtype='int64')
         res = s.to_string(max_rows=2, length=True)
-        exp = '0      0\n      ..\n99    99\nLength: 100'
+        exp = '0     0\n     ..\n99   99\nLength: 100'
         self.assertEqual(res, exp)
 
     def test_to_string_na_rep(self):
@@ -3883,7 +3886,6 @@ class TestSeriesFormatting(tm.TestCase):
         exp = '0    0\n    ..\n9    9'
         self.assertEqual(res, exp)
 
-
 class TestEngFormatter(tm.TestCase):
     _multiprocess_can_split_ = True
 
@@ -3892,29 +3894,29 @@ class TestEngFormatter(tm.TestCase):
 
         fmt.set_eng_float_format()
         result = df.to_string()
-        expected = ('             A\n'
-                    '0    1.410E+00\n'
-                    '1  141.000E+00\n'
-                    '2   14.100E+03\n'
-                    '3    1.410E+06')
+        expected = ('            A\n'
+                    '0   1.410E+00\n'
+                    '1 141.000E+00\n'
+                    '2  14.100E+03\n'
+                    '3   1.410E+06')
         self.assertEqual(result, expected)
 
         fmt.set_eng_float_format(use_eng_prefix=True)
         result = df.to_string()
-        expected = ('         A\n'
-                    '0    1.410\n'
-                    '1  141.000\n'
-                    '2  14.100k\n'
-                    '3   1.410M')
+        expected = ('        A\n'
+                    '0   1.410\n'
+                    '1 141.000\n'
+                    '2 14.100k\n'
+                    '3  1.410M')
         self.assertEqual(result, expected)
 
         fmt.set_eng_float_format(accuracy=0)
         result = df.to_string()
-        expected = ('         A\n'
-                    '0    1E+00\n'
-                    '1  141E+00\n'
-                    '2   14E+03\n'
-                    '3    1E+06')
+        expected = ('        A\n'
+                    '0   1E+00\n'
+                    '1 141E+00\n'
+                    '2  14E+03\n'
+                    '3   1E+06')
         self.assertEqual(result, expected)
 
         self.reset_display_options()
@@ -3938,98 +3940,98 @@ class TestEngFormatter(tm.TestCase):
         """
         for input, output in in_out:
             self.compare(formatter, input, output)
-            self.compare(formatter, -input, "-" + output[1:])
+            self.compare(formatter, -input, "-" + output)
 
     def test_exponents_with_eng_prefix(self):
         formatter = fmt.EngFormatter(accuracy=3, use_eng_prefix=True)
         f = np.sqrt(2)
-        in_out = [(f * 10 ** -24, " 1.414y"), (f * 10 ** -23, " 14.142y"),
-                  (f * 10 ** -22, " 141.421y"), (f * 10 ** -21, " 1.414z"),
-                  (f * 10 ** -20, " 14.142z"), (f * 10 ** -19, " 141.421z"),
-                  (f * 10 ** -18, " 1.414a"), (f * 10 ** -17, " 14.142a"),
-                  (f * 10 ** -16, " 141.421a"), (f * 10 ** -15, " 1.414f"),
-                  (f * 10 ** -14, " 14.142f"), (f * 10 ** -13, " 141.421f"),
-                  (f * 10 ** -12, " 1.414p"), (f * 10 ** -11, " 14.142p"),
-                  (f * 10 ** -10, " 141.421p"), (f * 10 ** -9, " 1.414n"),
-                  (f * 10 ** -8, " 14.142n"), (f * 10 ** -7, " 141.421n"),
-                  (f * 10 ** -6, " 1.414u"), (f * 10 ** -5, " 14.142u"),
-                  (f * 10 ** -4, " 141.421u"), (f * 10 ** -3, " 1.414m"),
-                  (f * 10 ** -2, " 14.142m"), (f * 10 ** -1, " 141.421m"),
-                  (f * 10 ** 0, " 1.414"), (f * 10 ** 1, " 14.142"),
-                  (f * 10 ** 2, " 141.421"), (f * 10 ** 3, " 1.414k"),
-                  (f * 10 ** 4, " 14.142k"), (f * 10 ** 5, " 141.421k"),
-                  (f * 10 ** 6, " 1.414M"), (f * 10 ** 7, " 14.142M"),
-                  (f * 10 ** 8, " 141.421M"), (f * 10 ** 9, " 1.414G"), (
-                      f * 10 ** 10, " 14.142G"), (f * 10 ** 11, " 141.421G"),
-                  (f * 10 ** 12, " 1.414T"), (f * 10 ** 13, " 14.142T"), (
-                      f * 10 ** 14, " 141.421T"), (f * 10 ** 15, " 1.414P"), (
-                          f * 10 ** 16, " 14.142P"), (f * 10 ** 17, " 141.421P"), (
-                              f * 10 ** 18, " 1.414E"), (f * 10 ** 19, " 14.142E"),
-                  (f * 10 ** 20, " 141.421E"), (f * 10 ** 21, " 1.414Z"), (
-                      f * 10 ** 22, " 14.142Z"), (f * 10 ** 23, " 141.421Z"), (
-                          f * 10 ** 24, " 1.414Y"), (f * 10 ** 25, " 14.142Y"), (
-                              f * 10 ** 26, " 141.421Y")]
+        in_out = [(f * 10 ** -24, "1.414y"), (f * 10 ** -23, "14.142y"),
+                  (f * 10 ** -22, "141.421y"), (f * 10 ** -21, "1.414z"),
+                  (f * 10 ** -20, "14.142z"), (f * 10 ** -19, "141.421z"),
+                  (f * 10 ** -18, "1.414a"), (f * 10 ** -17, "14.142a"),
+                  (f * 10 ** -16, "141.421a"), (f * 10 ** -15, "1.414f"),
+                  (f * 10 ** -14, "14.142f"), (f * 10 ** -13, "141.421f"),
+                  (f * 10 ** -12, "1.414p"), (f * 10 ** -11, "14.142p"),
+                  (f * 10 ** -10, "141.421p"), (f * 10 ** -9, "1.414n"),
+                  (f * 10 ** -8, "14.142n"), (f * 10 ** -7, "141.421n"),
+                  (f * 10 ** -6, "1.414u"), (f * 10 ** -5, "14.142u"),
+                  (f * 10 ** -4, "141.421u"), (f * 10 ** -3, "1.414m"),
+                  (f * 10 ** -2, "14.142m"), (f * 10 ** -1, "141.421m"),
+                  (f * 10 ** 0, "1.414"), (f * 10 ** 1, "14.142"),
+                  (f * 10 ** 2, "141.421"), (f * 10 ** 3, "1.414k"),
+                  (f * 10 ** 4, "14.142k"), (f * 10 ** 5, "141.421k"),
+                  (f * 10 ** 6, "1.414M"), (f * 10 ** 7, "14.142M"),
+                  (f * 10 ** 8, "141.421M"), (f * 10 ** 9, "1.414G"), (
+                      f * 10 ** 10, "14.142G"), (f * 10 ** 11, "141.421G"),
+                  (f * 10 ** 12, "1.414T"), (f * 10 ** 13, "14.142T"), (
+                      f * 10 ** 14, "141.421T"), (f * 10 ** 15, "1.414P"), (
+                          f * 10 ** 16, "14.142P"), (f * 10 ** 17, "141.421P"), (
+                              f * 10 ** 18, "1.414E"), (f * 10 ** 19, "14.142E"),
+                  (f * 10 ** 20, "141.421E"), (f * 10 ** 21, "1.414Z"), (
+                      f * 10 ** 22, "14.142Z"), (f * 10 ** 23, "141.421Z"), (
+                          f * 10 ** 24, "1.414Y"), (f * 10 ** 25, "14.142Y"), (
+                              f * 10 ** 26, "141.421Y")]
         self.compare_all(formatter, in_out)
 
     def test_exponents_without_eng_prefix(self):
         formatter = fmt.EngFormatter(accuracy=4, use_eng_prefix=False)
         f = np.pi
-        in_out = [(f * 10 ** -24, " 3.1416E-24"),
-                  (f * 10 ** -23, " 31.4159E-24"),
-                  (f * 10 ** -22, " 314.1593E-24"),
-                  (f * 10 ** -21, " 3.1416E-21"),
-                  (f * 10 ** -20, " 31.4159E-21"),
-                  (f * 10 ** -19, " 314.1593E-21"),
-                  (f * 10 ** -18, " 3.1416E-18"),
-                  (f * 10 ** -17, " 31.4159E-18"),
-                  (f * 10 ** -16, " 314.1593E-18"),
-                  (f * 10 ** -15, " 3.1416E-15"),
-                  (f * 10 ** -14, " 31.4159E-15"),
-                  (f * 10 ** -13, " 314.1593E-15"),
-                  (f * 10 ** -12, " 3.1416E-12"),
-                  (f * 10 ** -11, " 31.4159E-12"),
-                  (f * 10 ** -10, " 314.1593E-12"),
-                  (f * 10 ** -9, " 3.1416E-09"), (f * 10 ** -8, " 31.4159E-09"),
-                  (f * 10 ** -7, " 314.1593E-09"), (f * 10 ** -6, " 3.1416E-06"),
-                  (f * 10 ** -5, " 31.4159E-06"), (f * 10 ** -4,
-                                                   " 314.1593E-06"),
-                  (f * 10 ** -3, " 3.1416E-03"), (f * 10 ** -2, " 31.4159E-03"),
-                  (f * 10 ** -1, " 314.1593E-03"), (f * 10 ** 0, " 3.1416E+00"), (
-                      f * 10 ** 1, " 31.4159E+00"), (f * 10 ** 2, " 314.1593E+00"),
-                  (f * 10 ** 3, " 3.1416E+03"), (f * 10 ** 4, " 31.4159E+03"), (
-                      f * 10 ** 5, " 314.1593E+03"), (f * 10 ** 6, " 3.1416E+06"),
-                  (f * 10 ** 7, " 31.4159E+06"), (f * 10 ** 8, " 314.1593E+06"), (
-                      f * 10 ** 9, " 3.1416E+09"), (f * 10 ** 10, " 31.4159E+09"),
-                  (f * 10 ** 11, " 314.1593E+09"), (f * 10 ** 12, " 3.1416E+12"),
-                  (f * 10 ** 13, " 31.4159E+12"), (f * 10 ** 14, " 314.1593E+12"),
-                  (f * 10 ** 15, " 3.1416E+15"), (f * 10 ** 16, " 31.4159E+15"),
-                  (f * 10 ** 17, " 314.1593E+15"), (f * 10 ** 18, " 3.1416E+18"),
-                  (f * 10 ** 19, " 31.4159E+18"), (f * 10 ** 20, " 314.1593E+18"),
-                  (f * 10 ** 21, " 3.1416E+21"), (f * 10 ** 22, " 31.4159E+21"),
-                  (f * 10 ** 23, " 314.1593E+21"), (f * 10 ** 24, " 3.1416E+24"),
-                  (f * 10 ** 25, " 31.4159E+24"), (f * 10 ** 26, " 314.1593E+24")]
+        in_out = [(f * 10 ** -24, "3.1416E-24"),
+                  (f * 10 ** -23, "31.4159E-24"),
+                  (f * 10 ** -22, "314.1593E-24"),
+                  (f * 10 ** -21, "3.1416E-21"),
+                  (f * 10 ** -20, "31.4159E-21"),
+                  (f * 10 ** -19, "314.1593E-21"),
+                  (f * 10 ** -18, "3.1416E-18"),
+                  (f * 10 ** -17, "31.4159E-18"),
+                  (f * 10 ** -16, "314.1593E-18"),
+                  (f * 10 ** -15, "3.1416E-15"),
+                  (f * 10 ** -14, "31.4159E-15"),
+                  (f * 10 ** -13, "314.1593E-15"),
+                  (f * 10 ** -12, "3.1416E-12"),
+                  (f * 10 ** -11, "31.4159E-12"),
+                  (f * 10 ** -10, "314.1593E-12"),
+                  (f * 10 ** -9, "3.1416E-09"), (f * 10 ** -8, "31.4159E-09"),
+                  (f * 10 ** -7, "314.1593E-09"), (f * 10 ** -6, "3.1416E-06"),
+                  (f * 10 ** -5, "31.4159E-06"), (f * 10 ** -4,
+                                                   "314.1593E-06"),
+                  (f * 10 ** -3, "3.1416E-03"), (f * 10 ** -2, "31.4159E-03"),
+                  (f * 10 ** -1, "314.1593E-03"), (f * 10 ** 0, "3.1416E+00"), (
+                      f * 10 ** 1, "31.4159E+00"), (f * 10 ** 2, "314.1593E+00"),
+                  (f * 10 ** 3, "3.1416E+03"), (f * 10 ** 4, "31.4159E+03"), (
+                      f * 10 ** 5, "314.1593E+03"), (f * 10 ** 6, "3.1416E+06"),
+                  (f * 10 ** 7, "31.4159E+06"), (f * 10 ** 8, "314.1593E+06"), (
+                      f * 10 ** 9, "3.1416E+09"), (f * 10 ** 10, "31.4159E+09"),
+                  (f * 10 ** 11, "314.1593E+09"), (f * 10 ** 12, "3.1416E+12"),
+                  (f * 10 ** 13, "31.4159E+12"), (f * 10 ** 14, "314.1593E+12"),
+                  (f * 10 ** 15, "3.1416E+15"), (f * 10 ** 16, "31.4159E+15"),
+                  (f * 10 ** 17, "314.1593E+15"), (f * 10 ** 18, "3.1416E+18"),
+                  (f * 10 ** 19, "31.4159E+18"), (f * 10 ** 20, "314.1593E+18"),
+                  (f * 10 ** 21, "3.1416E+21"), (f * 10 ** 22, "31.4159E+21"),
+                  (f * 10 ** 23, "314.1593E+21"), (f * 10 ** 24, "3.1416E+24"),
+                  (f * 10 ** 25, "31.4159E+24"), (f * 10 ** 26, "314.1593E+24")]
         self.compare_all(formatter, in_out)
 
     def test_rounding(self):
         formatter = fmt.EngFormatter(accuracy=3, use_eng_prefix=True)
-        in_out = [(5.55555, ' 5.556'), (55.5555, ' 55.556'),
-                  (555.555, ' 555.555'), (5555.55, ' 5.556k'),
-                  (55555.5, ' 55.556k'), (555555, ' 555.555k')]
+        in_out = [(5.55555, '5.556'), (55.5555, '55.556'),
+                  (555.555, '555.555'), (5555.55, '5.556k'),
+                  (55555.5, '55.556k'), (555555, '555.555k')]
         self.compare_all(formatter, in_out)
 
         formatter = fmt.EngFormatter(accuracy=1, use_eng_prefix=True)
-        in_out = [(5.55555, ' 5.6'), (55.5555, ' 55.6'), (555.555, ' 555.6'),
-                  (5555.55, ' 5.6k'), (55555.5, ' 55.6k'), (555555, ' 555.6k')]
+        in_out = [(5.55555, '5.6'), (55.5555, '55.6'), (555.555, '555.6'),
+                  (5555.55, '5.6k'), (55555.5, '55.6k'), (555555, '555.6k')]
         self.compare_all(formatter, in_out)
 
         formatter = fmt.EngFormatter(accuracy=0, use_eng_prefix=True)
-        in_out = [(5.55555, ' 6'), (55.5555, ' 56'), (555.555, ' 556'),
-                  (5555.55, ' 6k'), (55555.5, ' 56k'), (555555, ' 556k')]
+        in_out = [(5.55555, '6'), (55.5555, '56'), (555.555, '556'),
+                  (5555.55, '6k'), (55555.5, '56k'), (555555, '556k')]
         self.compare_all(formatter, in_out)
 
         formatter = fmt.EngFormatter(accuracy=3, use_eng_prefix=True)
         result = formatter(0)
-        self.assertEqual(result, u(' 0.000'))
+        self.assertEqual(result, u('0.000'))
 
     def test_nan(self):
         # Issue #11981
@@ -4069,8 +4071,8 @@ class TestFloatArrayFormatter(tm.TestCase):
     def test_format(self):
         obj = fmt.FloatArrayFormatter(np.array([12, 0], dtype=np.float64))
         result = obj.get_result()
-        self.assertEqual(result[0], " 12.0")
-        self.assertEqual(result[1], "  0.0")
+        self.assertEqual(result[0], "12.0")
+        self.assertEqual(result[1], " 0.0")
 
     def test_output_significant_digits(self):
         # Issue #9764
@@ -4085,15 +4087,15 @@ class TestFloatArrayFormatter(tm.TestCase):
 
             expected_output = {
                 (0, 6):
-                '           col1\n0  9.999000e-08\n1  1.000000e-07\n2  1.000100e-07\n3  2.000000e-07\n4  4.999000e-07\n5  5.000000e-07',
+                '          col1\n0 9.999000e-08\n1 1.000000e-07\n2 1.000100e-07\n3 2.000000e-07\n4 4.999000e-07\n5 5.000000e-07',
                 (1, 6):
-                '           col1\n1  1.000000e-07\n2  1.000100e-07\n3  2.000000e-07\n4  4.999000e-07\n5  5.000000e-07',
+                '          col1\n1 1.000000e-07\n2 1.000100e-07\n3 2.000000e-07\n4 4.999000e-07\n5 5.000000e-07',
                 (1, 8):
-                '           col1\n1  1.000000e-07\n2  1.000100e-07\n3  2.000000e-07\n4  4.999000e-07\n5  5.000000e-07\n6  5.000100e-07\n7  6.000000e-07',
+                '          col1\n1 1.000000e-07\n2 1.000100e-07\n3 2.000000e-07\n4 4.999000e-07\n5 5.000000e-07\n6 5.000100e-07\n7 6.000000e-07',
                 (8, 16):
-                '            col1\n8   9.999000e-07\n9   1.000000e-06\n10  1.000100e-06\n11  2.000000e-06\n12  4.999000e-06\n13  5.000000e-06\n14  5.000100e-06\n15  6.000000e-06',
+                '           col1\n8  9.999000e-07\n9  1.000000e-06\n10 1.000100e-06\n11 2.000000e-06\n12 4.999000e-06\n13 5.000000e-06\n14 5.000100e-06\n15 6.000000e-06',
                 (9, 16):
-                '        col1\n9   0.000001\n10  0.000001\n11  0.000002\n12  0.000005\n13  0.000005\n14  0.000005\n15  0.000006'
+                '       col1\n9  0.000001\n10 0.000001\n11 0.000002\n12 0.000005\n13 0.000005\n14 0.000005\n15 0.000006'
             }
 
             for (start, stop), v in expected_output.items():
@@ -4105,12 +4107,12 @@ class TestFloatArrayFormatter(tm.TestCase):
             # need both a number > 1e6 and something that normally formats to
             # having length > display.precision + 6
             df = pd.DataFrame(dict(x=[12345.6789]))
-            self.assertEqual(str(df), '            x\n0  12345.6789')
+            self.assertEqual(str(df), '           x\n0 12345.6789')
             df = pd.DataFrame(dict(x=[2e6]))
-            self.assertEqual(str(df), '           x\n0  2000000.0')
+            self.assertEqual(str(df), '          x\n0 2000000.0')
             df = pd.DataFrame(dict(x=[12345.6789, 2e6]))
             self.assertEqual(
-                str(df), '            x\n0  1.2346e+04\n1  2.0000e+06')
+                str(df), '           x\n0 1.2346e+04\n1 2.0000e+06')
 
 
 class TestRepr_timedelta64(tm.TestCase):

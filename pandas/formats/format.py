@@ -250,6 +250,10 @@ class SeriesFormatter(object):
                 dot_str = '...'
             else:
                 dot_str = '..'
+
+            if width == 1:
+                fmt_values = [' ' + x for x in fmt_values]
+
             # Series uses mode=center because it has single value columns
             # DataFrame uses mode=left
             dot_str = self.adj.justify([dot_str], width, mode='center')[0]
@@ -259,8 +263,7 @@ class SeriesFormatter(object):
         if self.index:
             result = self.adj.adjoin(3, *[fmt_index[1:], fmt_values])
         else:
-            result = self.adj.adjoin(3, fmt_values).replace('\n ',
-                                                            '\n').strip()
+            result = self.adj.adjoin(3, fmt_values)
 
         if self.header and have_header:
             result = fmt_index[0] + '\n' + result
@@ -604,8 +607,7 @@ class DataFrameFormatter(TableFormatter):
                 self._chk_truncate()
                 strcols = self._to_str_columns()
                 text = self.adj.adjoin(1, *strcols)
-        if not self.index:
-            text = text.replace('\n ', '\n').strip()
+
         self.buf.writelines(text)
 
         if self.should_show_dimensions:
@@ -713,20 +715,8 @@ class DataFrameFormatter(TableFormatter):
         if isinstance(columns, MultiIndex):
             fmt_columns = columns.format(sparsify=False, adjoin=False)
             fmt_columns = lzip(*fmt_columns)
-            dtypes = self.frame.dtypes._values
 
-            # if we have a Float level, they don't use leading space at all
-            restrict_formatting = any([l.is_floating for l in columns.levels])
-            need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
-
-            def space_format(x, y):
-                if (y not in self.formatters and
-                        need_leadsp[x] and not restrict_formatting):
-                    return ' ' + y
-                return y
-
-            str_columns = list(zip(*[[space_format(x, y) for y in x]
-                                     for x in fmt_columns]))
+            str_columns = list(zip(*fmt_columns))
             if self.sparsify:
                 str_columns = _sparsify(str_columns)
 
@@ -734,11 +724,7 @@ class DataFrameFormatter(TableFormatter):
         else:
             fmt_columns = columns.format()
             dtypes = self.frame.dtypes
-            need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
-            str_columns = [[' ' + x if not self._get_formatter(i) and
-                            need_leadsp[x] else x]
-                           for i, (col, x) in enumerate(zip(columns,
-                                                            fmt_columns))]
+            str_columns = [[x] for x in fmt_columns]
 
         if self.show_index_names and self.has_index_names:
             for x in str_columns:
@@ -1954,7 +1940,7 @@ class GenericArrayFormatter(object):
         if self.float_format is None:
             float_format = get_option("display.float_format")
             if float_format is None:
-                fmt_str = '%% .%dg' % get_option("display.precision")
+                fmt_str = '%%.%dg' % get_option("display.precision")
                 float_format = lambda x: fmt_str % x
         else:
             float_format = self.float_format
@@ -1983,16 +1969,13 @@ class GenericArrayFormatter(object):
             vals = vals.values
 
         is_float_type = lib.map_infer(vals, is_float) & notnull(vals)
-        leading_space = is_float_type.any()
 
         fmt_values = []
         for i, v in enumerate(vals):
-            if not is_float_type[i] and leading_space:
-                fmt_values.append(' %s' % _format(v))
-            elif is_float_type[i]:
+            if is_float_type[i]:
                 fmt_values.append(float_format(v))
             else:
-                fmt_values.append(' %s' % _format(v))
+                fmt_values.append('%s' % _format(v))
 
         return fmt_values
 
@@ -2090,7 +2073,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
         # There is a special default string when we are fixed-width
         # The default is otherwise to use str instead of a formatting string
         if self.float_format is None and self.fixed_width:
-            float_format = '%% .%df' % self.digits
+            float_format = '%%.%df' % self.digits
         else:
             float_format = self.float_format
 
@@ -2119,7 +2102,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
                                 (abs_vals > 0)).any()
 
         if has_small_values or (too_long and has_large_values):
-            float_format = '%% .%de' % self.digits
+            float_format = '%%.%de' % self.digits
             formatted_values = format_values_with(float_format)
 
         return formatted_values
@@ -2134,7 +2117,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
 class IntArrayFormatter(GenericArrayFormatter):
     def _format_strings(self):
-        formatter = self.formatter or (lambda x: '% d' % x)
+        formatter = self.formatter or (lambda x: '%d' % x)
         fmt_values = [formatter(x) for x in self.values]
         return fmt_values
 
@@ -2615,9 +2598,9 @@ class EngFormatter(object):
         mant = sign * dnum / (10**pow10)
 
         if self.accuracy is None:  # pragma: no cover
-            format_str = u("% g%s")
+            format_str = u("%g%s")
         else:
-            format_str = (u("%% .%if%%s") % self.accuracy)
+            format_str = (u("%%.%if%%s") % self.accuracy)
 
         formatted = format_str % (mant, prefix)
 

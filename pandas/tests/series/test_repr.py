@@ -27,12 +27,12 @@ class TestSeriesRepr(TestData, tm.TestCase):
                                    [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['first', 'second'])
         s = Series(lrange(0, len(index)), index=index, name='sth')
-        expected = ["first  second", "foo    one       0",
-                    "       two       1", "       three     2",
-                    "bar    one       3", "       two       4",
-                    "baz    two       5", "       three     6",
-                    "qux    one       7", "       two       8",
-                    "       three     9", "Name: sth, dtype: int64"]
+        expected = ["first  second", "foo    one      0",
+                    "       two      1", "       three    2",
+                    "bar    one      3", "       two      4",
+                    "baz    two      5", "       three    6",
+                    "qux    one      7", "       two      8",
+                    "       three    9", "Name: sth, dtype: int64"]
         expected = "\n".join(expected)
         self.assertEqual(repr(s), expected)
 

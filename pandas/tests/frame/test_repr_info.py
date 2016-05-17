@@ -133,7 +133,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         df = DataFrame({'A': [uval, uval]})
 
         result = repr(df)
-        ex_top = '      A'
+        ex_top = '     A'
         self.assertEqual(result.split('\n')[0].rstrip(), ex_top)
 
         df = DataFrame({'A': [uval, uval]})
@@ -178,10 +178,10 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
     def test_latex_repr(self):
         result = r"""\begin{tabular}{llll}
 \toprule
-{} &         0 &  1 &  2 \\
+{} &        0 & 1 & 2 \\
 \midrule
-0 &  $\alpha$ &  b &  c \\
-1 &         1 &  2 &  3 \\
+0 & $\alpha$ & b & c \\
+1 &        1 & 2 & 3 \\
 \bottomrule
 \end{tabular}
 """
