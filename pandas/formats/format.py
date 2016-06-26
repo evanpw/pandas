@@ -347,7 +347,7 @@ class DataFrameFormatter(TableFormatter):
                  max_cols=None, show_dimensions=False, decimal='.', **kwds):
         self.frame = frame
         self.buf = _expand_user(buf) if buf is not None else StringIO()
-        self.show_index_names = index_names
+        self.show_index_names = index_names and index
 
         if sparsify is None:
             sparsify = get_option("display.multi_sparse")
