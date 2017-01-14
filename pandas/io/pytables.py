@@ -587,7 +587,7 @@ class HDFStore(StringMixin):
             self._handle = tables.open_file(self._path, self._mode, **kwargs)
         except (IOError) as e:  # pragma: no cover
             if 'can not be written' in str(e):
-                print('Opening %s in read-only mode' % self._path)
+                warnings.warn('Opening %s in read-only mode' % self._path, RuntimeWarning, stacklevel=3)
                 self._handle = tables.open_file(self._path, 'r', **kwargs)
             else:
                 raise
